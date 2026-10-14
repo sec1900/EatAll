@@ -1,0 +1,3 @@
+# EatAll 分析管道依赖：仅 PyYAML（可选）+ 标准库
+# 若无法安装 PyYAML，emit.py 会退化为内置的极简 YAML 序列化器
+PyYAML>=6.0

@@ -1,0 +1,25 @@
+# EatAll 开发配置：全部使用高位端口，Windows 普通权限可跑
+# 协议识别靠 banner 内容而非端口号，nmap -sV 仍能识别伪装服务
+listen_ports:
+  - "8081"      # http (nginx 伪装) — 8080 若被本机其他服务占用则换 8081
+  - "8022"      # ssh (OpenSSH 7.4 伪装)
+  - "8443"      # tls-http
+  - "33061"     # mysql 8.0.26 伪装
+  - "63791"     # redis 5.0.14 伪装
+  - "8021"      # ftp (vsFTPd 伪装)
+  - "8445"      # smb
+  - "8053/udp"  # dns
+  - "7000-7100" # generic 兜底
+
+sessions_dir: "data/sessions"
+log_file: "data/logs/proxy.log"
+
+limits:
+  max_conns_per_ip: 50
+  max_session_bytes: 1048576
+  idle_timeout_sec: 15
+  max_session_sec: 60
+  max_http_reqs_per_conn: 10
+  max_line_bytes: 65536
+  max_body_bytes: 65536
+  max_global_conns: 1024

@@ -1,0 +1,18 @@
+# E2E 演示：第二轮升级探针（v2）——新增的探测路径，应作为"新增 POC"出现在版本对比
+id: demo-upgrade-probe-v2
+info:
+  name: Demo Upgrade Probe v2
+  author: demo
+  severity: medium
+  tags: demo,upgrade,v2
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/v2-upgrade-{{randstr}}/api/{{randstr}}?token={{randstr}}"
+    matchers:
+      - type: status
+        status:
+          - 200
+          - 301
+          - 302
+          - 404

@@ -1,0 +1,28 @@
+# EatAll 全端口模式：监听 1-65535 全部 TCP 端口（UDP 仅常见端口）
+# 目的：漏扫只对"开放"端口做服务识别和 POC 攻击——全端口开放才能拿到对方全量 POC
+# 注意：
+#   - 仅建议 Linux 部署（ulimit -n 调高到 70000+）；Windows 上 6.5 万监听 socket
+#     会耗尽系统缓冲区（WinError 10055 无法新建连接），请改用 config.broad.yaml
+#   - 全端口开放是明显的蜜罐特征（真实服务器不会这样），取舍自定
+#   - 系统占用端口（Windows 135/445 等）绑定失败只告警不阻塞
+#   - 内存占用约 1.2GB（6.5 万 goroutine），VPS 需 2GB+
+listen_ports:
+  - "1-65535"
+  - "53/udp"    # dns
+  - "161/udp"   # snmp
+  - "500/udp"   # isakmp
+  - "1900/udp"  # ssdp
+  - "5353/udp"  # mdns
+
+sessions_dir: "data/sessions"
+log_file: "data/logs/proxy.log"
+
+limits:
+  max_conns_per_ip: 200
+  max_session_bytes: 1048576
+  idle_timeout_sec: 15
+  max_session_sec: 60
+  max_http_reqs_per_conn: 10
+  max_line_bytes: 65536
+  max_body_bytes: 65536
+  max_global_conns: 4096

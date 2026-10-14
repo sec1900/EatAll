@@ -1,0 +1,997 @@
+# EatAll 诱导层配置（banner 伪装 + 伪漏洞路径 + 网站漏扫诱饵）
+# 设计原则：banner 与响应版本自洽，避免一眼蜜罐
+#   named: 可复用的命名配置段；ports: 端口表，use 引用 named 并叠加覆盖
+#   $rand16 占位符由代理侧展开为 16 位随机 hex
+#   link_pool: 链接图谱伪路径池——首页/伪路径响应自动嵌入这些链接，诱爬虫跟随
+#   form: true 的响应自动追加登录表单（捕获 POST 参数组合）
+link_pool:
+  - "/admin/"
+  - "/admin/login.php"
+  - "/login.php"
+  - "/index.php"
+  - "/api/v1/users"
+  - "/api/v1/config"
+  - "/config.php"
+  - "/phpinfo.php"
+  - "/upload/"
+  - "/download.php"
+  - "/search.php"
+  - "/about.php"
+  - "/contact.php"
+  - "/register.php"
+  - "/profile.php"
+  - "/settings.php"
+  - "/admin/config.php"
+  - "/admin/users.php"
+  - "/backup/"
+  - "/db/"
+  - "/logs/"
+  - "/tmp/"
+  - "/include/"
+  - "/js/app.js"
+  - "/css/style.css"
+  - "/robots.txt"
+  - "/wp-login.php"
+  - "/phpMyAdmin/"
+  - "/actuator/env"
+  - "/.git/config"
+named:
+  http_main:
+    proto: http
+    server_header: "nginx/1.18.0"
+    responses:
+      "/":
+        status: 200
+        headers:
+          Content-Type: "text/html; charset=utf-8"
+          Set-Cookie: "PHPSESSID=$rand16"
+        body: |
+          <html><head><title>Welcome</title></head><body>It works!</body></html>
+      # —— 伪漏洞路径：让扫描器认为存在脆弱组件，诱使其打全 POC ——
+      "/struts2-showcase/":
+        status: 200
+        body: |
+          <html><head><title>Struts Showcase</title></head><body><h2>Welcome to Struts Showcase</h2></body></html>
+      "/struts2-showcase/index.action":
+        status: 200
+        body: |
+          <html><head><title>Struts Showcase</title></head><body><h2>Welcome to Struts Showcase</h2></body></html>
+      "/index.action":
+        status: 200
+        body: |
+          <html><head><title>Struts Showcase</title></head><body><h2>Welcome to Struts Showcase</h2></body></html>
+      "/index.php":
+        status: 200
+        headers:
+          Content-Type: "text/html; charset=utf-8"
+          X-Powered-By: "PHP/7.4.33"
+        body: |
+          <?php /* ThinkPHP application */ ?>
+          <html><head><title>ThinkPHP</title></head><body>Hello World</body></html>
+      "/thinkphp/index.php":
+        status: 200
+        body: "ThinkPHP"
+      "/weblogic/console/":
+        status: 200
+        body: |
+          <html><head><title>WebLogic Server Console</title></head><body><h2>WebLogic Server Console</h2><p>Login Required</p></body></html>
+      "/wls-wsat/CoordinatorPortType":
+        status: 200
+        body: |
+          <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body/></soap:Envelope>
+      "/actuator/env":
+        status: 200
+        headers:
+          Content-Type: "application/json;charset=UTF-8"
+        body: '{"paths":{"/":{"activeProfiles":[]}}}'
+      "/actuator/health":
+        status: 200
+        headers:
+          Content-Type: "application/json;charset=UTF-8"
+        body: '{"status":"UP"}'
+      "/solr/admin/":
+        status: 200
+        body: |
+          <html><head><title>Solr Admin</title></head><body><h2>Solr Admin</h2></body></html>
+      "/druid/index.html":
+        status: 200
+        body: |
+          <html><head><title>Druid Stat</title></head><body><h2>Druid StatIndex</h2></body></html>
+      "/admin/":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Admin Login</title></head><body><h2>Admin Login</h2></body></html>
+      "/login.php":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Login</title></head><body><h2>Login</h2></body></html>
+      "/admin/login.php":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Admin Login</title></head><body><h2>Admin Login</h2></body></html>
+      "/wp-login.php":
+        status: 200
+        body: |
+          <html><head><title>Log In</title></head><body><form method="post"><input type="text" name="log"><input type="password" name="pwd"></form></body></html>
+      "/.git/config":
+        status: 200
+        headers:
+          Content-Type: "text/plain; charset=utf-8"
+        body: |
+          [core]
+          	repositoryformatversion = 0
+          	filemode = true
+          	bare = false
+          [remote "origin"]
+          	url = https://github.com/example/example.git
+      "/phpinfo.php":
+        status: 200
+        body: |
+          <html><head><title>phpinfo()</title></head><body><h1>PHP Version 7.4.33</h1><table><tr><td>PHP Version</td><td>7.4.33</td></tr></table></body></html>
+      "/phpMyAdmin/":
+        status: 200
+        body: |
+          <html><head><title>phpMyAdmin</title></head><body><h2>phpMyAdmin</h2><form><input type="text" name="pma_username"><input type="password" name="pma_password"></form></body></html>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><center><h1>404 Not Found</h1></center><hr><center>nginx/1.18.0</center></body></html>
+
+  redis_5:
+    proto: redis
+    reply_mode: "info"
+    info_reply: |
+      # Server
+      redis_version:5.0.14
+      redis_git_sha1:00000000
+      redis_git_dirty:0
+      redis_build_id:1234567890abcdef
+      redis_mode:standalone
+      os:Linux 4.15.0-72-generic x86_64
+      arch_bits:64
+      process_id:1234
+      run_id:0123456789abcdef0123456789abcdef01234567
+      tcp_port:6379
+      uptime_in_seconds:86400
+      uptime_in_days:1
+      # Clients
+      connected_clients:1
+      # Memory
+      used_memory:1048576
+      used_memory_human:1.00M
+      # Persistence
+      loading:0
+      # Stats
+      total_connections_received:1024
+      total_commands_processed:4096
+      # Replication
+      role:master
+      connected_slaves:0
+
+  mysql_80:
+    proto: mysql
+    server_version: "8.0.26"
+    auth_plugin: "caching_sha2_password"
+    auth_reply: "err"
+
+  mysql_57:
+    proto: mysql
+    server_version: "5.7.34"
+    auth_plugin: "mysql_native_password"
+    auth_reply: "err"
+
+  # ========== 多版本伪装矩阵（五期）：多端口伪装不同版本，漏扫按版本打对应 CVE POC ==========
+  http_nginx_old:
+    proto: http
+    server_header: "nginx/1.4.7"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Welcome to nginx!</title></head><body bgcolor="white" text="black"><center><h1>Welcome to nginx!</h1></center></body></html>
+      "/phpinfo.php":
+        status: 200
+        headers: { "X-Powered-By": "PHP/5.3.10-1ubuntu3" }
+        body: |
+          <html><head><title>phpinfo()</title></head><body><h1>PHP Version 5.3.10-1ubuntu3</h1><table><tr><td>System</td><td>Linux 2.6.32</td></tr></table></body></html>
+      "/index.php":
+        status: 200
+        headers: { "X-Powered-By": "PHP/5.3.10-1ubuntu3" }
+        body: |
+          <html><head><title>index</title></head><body>Hello</body></html>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><center><h1>404 Not Found</h1></center><hr><center>nginx/1.4.7</center></body></html>
+
+  http_apache_old:
+    proto: http
+    server_header: "Apache/2.2.15 (Unix) DAV/2"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>It works!</title></head><body><h1>It works!</h1><p>This is the default web page for this server.</p></body></html>
+      "/server-status":
+        status: 200
+        body: |
+          <html><head><title>Apache Server Status</title></head><body><h1>Apache Server Status</h1><dl><dt>Server Version: Apache/2.2.15 (Unix) DAV/2</dt></dl></body></html>
+      "/cgi-bin/":
+        status: 200
+        body: |
+          <html><head><title>Index of /cgi-bin/</title></head><body><h1>Index of /cgi-bin/</h1><hr><pre><a href="test.cgi">test.cgi</a></pre><hr></body></html>
+    fallback:
+      status: 404
+      body: |
+        <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p><hr><address>Apache/2.2.15 (Unix) DAV/2 Server at 127.0.0.1 Port 8083</address></body></html>
+
+  http_apache_new:
+    proto: http
+    server_header: "Apache/2.4.41 (Ubuntu)"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Apache2 Ubuntu Default Page</title></head><body><h1>Apache2 Default Page</h1><p>It works!</p></body></html>
+    fallback:
+      status: 404
+      body: |
+        <!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p><hr><address>Apache/2.4.41 (Ubuntu) Server at 127.0.0.1 Port 8084</address></body></html>
+
+  http_tomcat7:
+    proto: http
+    server_header: "Apache-Coyote/1.1"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><body><h1>It works !</h1><p>Tomcat 7.0.50</p></body></html>
+      "/manager/html":
+        status: 401
+        headers: { "WWW-Authenticate": "Basic realm=\"Tomcat Manager Application\"" }
+        body: |
+          <html><head><title>401 Unauthorized</title></head><body><h1>401 Unauthorized</h1><p>This server could not verify that you are authorized to access the document.</p></body></html>
+      "/manager/status":
+        status: 401
+        headers: { "WWW-Authenticate": "Basic realm=\"Tomcat Manager Application\"" }
+        body: |
+          <html><head><title>401 Unauthorized</title></head><body><h1>401 Unauthorized</h1></body></html>
+      "/host-manager/html":
+        status: 401
+        headers: { "WWW-Authenticate": "Basic realm=\"Tomcat Host Manager Application\"" }
+        body: |
+          <html><head><title>401 Unauthorized</title></head><body><h1>401 Unauthorized</h1></body></html>
+      "/examples/":
+        status: 200
+        body: |
+          <html><body><h1>Apache Tomcat Examples</h1><p>Tomcat 7.0.50</p></body></html>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>Apache Tomcat/7.0.50 - Error report</title></head><body><h1>HTTP Status 404 - Not Found</h1><hr><p><b>Type</b> Status Report</p><p><b>message</b> Not Found</p><hr><h3>Apache Tomcat/7.0.50</h3></body></html>
+
+  http_tomcat8:
+    proto: http
+    server_header: "Apache-Coyote/1.1"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><body><h1>It works !</h1><p>Tomcat 8.0.53</p></body></html>
+      "/manager/html":
+        status: 401
+        headers: { "WWW-Authenticate": "Basic realm=\"Tomcat Manager Application\"" }
+        body: |
+          <html><head><title>401 Unauthorized</title></head><body><h1>401 Unauthorized</h1></body></html>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>Apache Tomcat/8.0.53 - Error report</title></head><body><h1>HTTP Status 404 - Not Found</h1><hr><p><b>Type</b> Status Report</p><hr><h3>Apache Tomcat/8.0.53</h3></body></html>
+
+  http_weblogic10:
+    proto: http
+    server_header: "WebLogic Server 10.3.6.0"
+    responses:
+      "/console/":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>WebLogic Server Console</title></head><body><h2>WebLogic Server Console</h2><p>Login Required</p></body></html>
+      "/console/login/LoginForm.jsp":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>WebLogic Server Console</title></head><body><h2>Login Form</h2></body></html>
+      "/wls-wsat/CoordinatorPortType":
+        status: 200
+        body: |
+          <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body/></soap:Envelope>
+      "/uddiexplorer/":
+        status: 200
+        body: |
+          <html><head><title>UDDI Explorer</title></head><body><h2>UDDI Explorer</h2></body></html>
+      "/bea_wls_internal/":
+        status: 200
+        body: |
+          <html><head><title>BEA WebLogic Server</title></head><body></body></html>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1><p>Requested resource not found.</p></body></html>
+
+  http_jboss5:
+    proto: http
+    server_header: "Apache-Coyote/1.1"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Welcome to JBoss</title></head><body><h1>Welcome to JBoss</h1><p>JBoss 5.0.1.GA</p></body></html>
+      "/web-console/":
+        status: 200
+        body: |
+          <html><head><title>JMX Console</title></head><body><h2>JBoss JMX Management Console</h2><p>JBoss 5.0.1.GA</p></body></html>
+      "/invoker/JMXInvokerServlet":
+        status: 200
+        body: |
+          <html><body>invoker</body></html>
+      "/jolokia/":
+        status: 200
+        body: |
+          <html><body>Jolokia</body></html>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1><p>The server has not found anything matching the request URI.</p></body></html>
+
+  http_iis8:
+    proto: http
+    server_header: "Microsoft-IIS/8.5"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <!DOCTYPE html><html><head><title>IIS Windows Server</title></head><body><h1>IIS Windows Server</h1><p>Welcome</p></body></html>
+    fallback:
+      status: 404
+      body: |
+        <!DOCTYPE html><html><head><title>404 - File or directory not found.</title></head><body><h1>404 - File or directory not found.</h1><p>The resource you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p></body></html>
+
+  ssh_openssh53:
+    proto: ssh
+    version: "SSH-2.0-OpenSSH_5.3"
+    static_kexinit: true
+
+  ssh_openssh66:
+    proto: ssh
+    version: "SSH-2.0-OpenSSH_6.6.1"
+    static_kexinit: true
+
+  mysql_55:
+    proto: mysql
+    server_version: "5.5.28"
+    auth_plugin: "mysql_native_password"
+    auth_reply: "err"
+
+  mysql_51:
+    proto: mysql
+    server_version: "5.1.73"
+    auth_plugin: "mysql_native_password"
+    auth_reply: "err"
+
+  redis_28:
+    proto: redis
+    reply_mode: "info"
+    info_reply: |
+      # Server
+      redis_version:2.8.24
+      redis_git_sha1:00000000
+      redis_mode:standalone
+      os:Linux 2.6.32-431.el6.x86_64
+      arch_bits:64
+      process_id:1111
+      run_id:abcdef0123456789abcdef0123456789abcdef01
+      tcp_port:6379
+      uptime_in_seconds:999999
+      # Clients
+      connected_clients:1
+      # Memory
+      used_memory:524288
+      # Replication
+      role:master
+      connected_slaves:0
+
+  ftp_proftpd:
+    proto: ftp
+    banner: "220 ProFTPD 1.3.3c Server (Debian) [::ffff:127.0.0.1]\r\n"
+    login_accept: false
+
+  # ========== 服务伪装全谱（五期-2）：1-1000 段常见服务全伪装 ==========
+  telnet:
+    proto: generic
+    banner: "Ubuntu 12.04 LTS\r\nlogin: "
+
+  smtp:
+    proto: generic
+    banner: "220 mail.local ESMTP Postfix\r\n"
+
+  pop3:
+    proto: generic
+    banner: "+OK Dovecot ready.\r\n"
+
+  imap:
+    proto: generic
+    banner: "* OK [CAPABILITY IMAP4rev1 LITERAL+ SASL-IR LOGIN-REFERRALS ID ENABLE IDLE STARTTLS AUTH=PLAIN AUTH=LOGIN] Dovecot ready.\r\n"
+
+  rsync:
+    proto: generic
+    banner: "@RSYNCD: 3.1.2\r\n"
+
+  vnc:
+    proto: generic
+    banner: "RFB 003.008\n"
+
+  zookeeper:
+    proto: generic
+    banner: "imok"
+
+  git:
+    proto: generic
+    banner: "001e# service=git-upload-pack\n"
+
+  memcached:
+    proto: generic
+    banner: "ERROR\r\n"
+
+  socks5:
+    proto: generic
+    banner: "\x05\x00"
+
+  rsh:
+    proto: generic
+    banner: "rshd 1.0 (rsh)\r\n"
+
+  rlogin:
+    proto: generic
+    banner: "\r\nlogin: "
+
+  sip:
+    proto: generic
+    banner: "SIP/2.0 400 Bad Request\r\n\r\n"
+
+  http_docker:
+    proto: http
+    server_header: "Docker/20.10.12 (linux)"
+    responses:
+      "/":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"message":"page not found"}'
+      "/version":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"Version":"20.10.12","ApiVersion":"1.41","Os":"linux","Arch":"amd64"}'
+      "/info":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"ID":"AAAA:BBBB","Containers":1,"Images":5,"Driver":"overlay2"}'
+    fallback:
+      status: 404
+      headers: { "Content-Type": "application/json" }
+      body: '{"message":"page not found"}'
+
+  http_grafana:
+    proto: http
+    server_header: "grafana"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Grafana</title></head><body><h1>Grafana</h1><p>Login</p></body></html>
+      "/api/health":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"database":"ok","version":"8.3.4"}'
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>Grafana - 404</title></head><body>Not Found</body></html>
+
+  http_squid:
+    proto: http
+    server_header: "squid/3.5.27"
+    responses:
+      "/":
+        status: 403
+        body: |
+          <html><head><title>ERROR: The requested URL could not be retrieved</title></head><body><h1>The requested URL could not be retrieved</h1><p>Access control configuration prevents your request from being allowed at this time.</p><hr><div id="footer"><p>Generated by squid/3.5.27</p></div></body></html>
+    fallback:
+      status: 403
+      body: |
+        <html><head><title>ERROR: The requested URL could not be retrieved</title></head><body><h1>The requested URL could not be retrieved</h1><hr><div id="footer"><p>Generated by squid/3.5.27</p></div></body></html>
+
+  http_glassfish:
+    proto: http
+    server_header: "GlassFish Server Open Source Edition  4.1"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>GlassFish Server</title></head><body><h2>GlassFish Server Open Source Edition 4.1</h2><p>Server is running</p></body></html>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>GlassFish Server Open Source Edition 4.1</p></body></html>
+
+  http_prometheus:
+    proto: http
+    server_header: "Prometheus/2.30.3"
+    responses:
+      "/":
+        status: 404
+        body: "404 page not found\n"
+      "/-/healthy":
+        status: 200
+        body: "Prometheus Server is Healthy.\n"
+      "/api/v1/status/version":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"status":"success","data":{"version":"2.30.3","revision":"abc","branch":"HEAD"}}'
+    fallback:
+      status: 404
+      body: "404 page not found\n"
+
+  http_kubelet:
+    proto: http
+    server_header: "kubelet/v1.22.0"
+    responses:
+      "/":
+        status: 404
+        body: "404 page not found\n"
+      "/pods":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"items":[],"metadata":{}}'
+      "/healthz":
+        status: 200
+        body: "ok"
+    fallback:
+      status: 404
+      body: "404 page not found\n"
+
+  http_solr:
+    proto: http
+    server_header: "Jetty(9.3.20.v20170531)"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Solr Admin</title></head><body><h1>Welcome to Apache Solr 6.6.5</h1><p>Solr Admin UI</p></body></html>
+      "/solr/":
+        status: 200
+        body: |
+          <html><head><title>Solr Admin</title></head><body><h1>Welcome to Apache Solr 6.6.5</h1></body></html>
+      "/solr/admin/cores":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"responseHeader":{"status":0,"QTime":1},"status":{}}'
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1><p>Solr 6.6.5</p></body></html>
+
+  http_es:
+    proto: http
+    server_header: ""
+    responses:
+      "/":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"name":"node-1","cluster_name":"elasticsearch","cluster_uuid":"abc","version":{"number":"2.4.1","build_hash":"abc","build_date":"2016-11-17T00:00:00Z","lucene_version":"5.5.2"},"tagline":"You Know, for Search"}'
+      "/_nodes":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"_nodes":{"total":1,"successful":1},"nodes":{"node-1":{"name":"node-1","version":"2.4.1","http_address":"0.0.0.0:9200"}}}'
+      "/_cat/indices":
+        status: 200
+        headers: { "Content-Type": "text/plain" }
+        body: "health status index uuid pri rep docs.count\n"
+    fallback:
+      status: 200
+      headers: { "Content-Type": "application/json" }
+      body: '{"error":{"root_cause":[{"type":"index_not_found_exception","reason":"no such index"}],"type":"index_not_found_exception"},"status":404}'
+
+  # ========== Web 应用伪装矩阵（五期-2）：web 应用 POC 不看端口号，多端口铺应用特征 ==========
+  web_wordpress:
+    proto: http
+    server_header: "nginx/1.14.2"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>My Blog</title></head><body><h1>My Blog</h1><p>Just another WordPress site</p></body></html>
+      "/wp-login.php":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Log In</title></head><body><form method="post"><input type="text" name="log"><input type="password" name="pwd"><input type="submit" value="Log In"></form></body></html>
+      "/wp-json/":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"name":"My Blog","url":"http://127.0.0.1","home":"http://127.0.0.1","gmt_offset":0,"namespaces":["wp/v2"]}'
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><h1>Not Found</h1></body></html>
+
+  web_drupal:
+    proto: http
+    server_header: "Apache/2.4.10 (Ubuntu)"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Drupal</title></head><body><h1>Welcome to Drupal 7.54</h1></body></html>
+      "/sites/default/files/":
+        status: 200
+        body: |
+          <html><head><title>Index of /sites/default/files</title></head><body><h1>Index</h1></body></html>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><h1>Not Found</h1></body></html>
+
+  web_joomla:
+    proto: http
+    server_header: "Apache/2.2.22 (Debian)"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Joomla!</title></head><body><h1>Joomla! 3.9.22</h1><p>Site is running</p></body></html>
+      "/administrator/":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Administration Login</title></head><body><form><input type="text" name="username"><input type="password" name="passwd"></form></body></html>
+      "/language/en-GB/en-GB.xml":
+        status: 200
+        body: |
+          <?xml version="1.0"?><metafile><version>3.9.22</version></metafile>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><h1>Not Found</h1></body></html>
+
+  web_shiro:
+    proto: http
+    server_header: "Apache-Coyote/1.1"
+    responses:
+      "/":
+        status: 302
+        headers: { "Location": "/login", "Set-Cookie": "JSESSIONID=ABC123; Path=/" }
+        body: ""
+      "/login":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Login</title></head><body><form method="post"><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></form></body></html>
+    fallback:
+      status: 404
+      body: ""
+
+  web_jenkins:
+    proto: http
+    server_header: "Jetty(9.4.z-SNAPSHOT)"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Jenkins</title></head><body><h1>Jenkins</h1><p>Welcome to Jenkins!</p></body></html>
+      "/login":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Sign in</title></head><body><form method="post"><input type="text" name="j_username"><input type="password" name="j_password"></form></body></html>
+      "/api/json":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"mode":"NORMAL","nodeName":"","numExecutors":2,"description":null}'
+    fallback:
+      status: 404
+      body: ""
+
+  web_gitlab:
+    proto: http
+    server_header: "nginx"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>GitLab</title></head><body><h1>GitLab</h1><p>Community Edition</p></body></html>
+      "/users/sign_in":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Sign in</title></head><body><form><input type="text" name="user[login]"><input type="password" name="user[password]"></form></body></html>
+      "/api/v4/projects":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '[]'
+    fallback:
+      status: 404
+      body: "404 Not Found"
+
+  web_spring:
+    proto: http
+    server_header: ""
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Spring Boot</title></head><body><h1>Whitelabel Error Page</h1></body></html>
+      "/actuator/env":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"activeProfiles":[],"propertySources":[{"name":"server.ports"}]}'
+      "/actuator/health":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"status":"UP"}'
+      "/error":
+        status: 500
+        body: |
+          <html><head><title>Whitelabel Error Page</title></head><body><h1>Whitelabel Error Page</h1><p>This application has no explicit mapping for /error</p></body></html>
+    fallback:
+      status: 404
+      body: ""
+
+  web_confluence:
+    proto: http
+    server_header: "nginx/1.20.1"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Confluence</title></head><body><h1>Confluence</h1><p>Atlassian Confluence 7.13.6</p></body></html>
+      "/login.action":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Log in</title></head><body><form><input type="text" name="os_username"><input type="password" name="os_password"></form></body></html>
+      "/rest/api/content":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"results":[],"size":0}'
+    fallback:
+      status: 404
+      body: "404 Not Found"
+
+  web_jira:
+    proto: http
+    server_header: "nginx/1.20.1"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Jira</title></head><body><h1>Jira</h1><p>Atlassian Jira 8.20.9</p></body></html>
+      "/login.jsp":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Log in</title></head><body><form><input type="text" name="os_username"><input type="password" name="os_password"></form></body></html>
+      "/rest/api/2/serverInfo":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"baseUrl":"http://127.0.0.1","version":"8.20.9","versionNumbers":[8,20,9]}'
+    fallback:
+      status: 404
+      body: "404 Not Found"
+
+  web_sonarqube:
+    proto: http
+    server_header: ""
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>SonarQube</title></head><body><h1>SonarQube 7.9.5</h1></body></html>
+      "/api/server/version":
+        status: 200
+        body: "7.9.5"
+      "/api/system/status":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"id":"abc","version":"7.9.5","status":"UP"}'
+    fallback:
+      status: 404
+      body: ""
+
+  web_harbor:
+    proto: http
+    server_header: "nginx/1.17.5"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Harbor</title></head><body><h1>Harbor</h1><p>Harbor 2.3.4</p></body></html>
+      "/api/v2.0/health":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"status":"healthy"}'
+    fallback:
+      status: 404
+      body: ""
+
+  web_nexus:
+    proto: http
+    server_header: "Jetty(9.4.35.v20201120)"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Nexus Repository Manager</title></head><body><h1>Nexus Repository Manager 3.30.0</h1></body></html>
+      "/service/rest/v1/status":
+        status: 200
+        headers: { "Content-Type": "application/json" }
+        body: '{"version":"3.30.0-01"}'
+    fallback:
+      status: 404
+      body: ""
+
+  # WebLogic 多个端口（漏扫按端口号 7001-7003 判定 WebLogic）
+  http_weblogic7:
+    proto: http
+    server_header: "WebLogic Server 10.3.6.0"
+    responses:
+      "/console/":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>WebLogic Server Console</title></head><body><h2>WebLogic Server Console</h2><p>Login Required</p></body></html>
+      "/console/login/LoginForm.jsp":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>WebLogic Server Console</title></head><body><h2>Login Form</h2></body></html>
+      "/wls-wsat/CoordinatorPortType":
+        status: 200
+        body: |
+          <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body/></soap:Envelope>
+      "/uddiexplorer/":
+        status: 200
+        body: |
+          <html><head><title>UDDI Explorer</title></head><body><h2>UDDI Explorer</h2></body></html>
+      "/bea_wls_internal/":
+        status: 200
+        body: |
+          <html><head><title>BEA WebLogic Server</title></head><body></body></html>
+      "/_async/AsyncResponseService":
+        status: 200
+        body: |
+          <html><body>AsyncResponseService</body></html>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1><p>Requested resource not found.</p></body></html>
+
+  # ===== 克隆自 http://127.0.0.1:8081（2026-08-02 23:19）=====
+  clone_demo:
+    proto: http
+    server_header: "nginx/1.18.0"
+    responses:
+      "/":
+        status: 200
+        body: |
+          <html><head><title>Welcome</title></head><body>It works!</body></html>
+          <div class="nav"><a href="/admin/">admin</a> <a href="/admin/login.php">admin/login.php</a> <a href="/login.php">login.php</a> <a href="/index.php">index.php</a> <a href="/api/v1/users">api/v1/users</a> <a href="/api/v1/config">api/v1/config</a> <a href="/config.php">config.php</a> <a href="/phpinfo.php">phpinfo.php</a> <a href="/upload/">upload</a> <a href="/download.php">download.php</a> <a href="/search.php">search.php</a> <a href="/about.php">about.php</a> </div>
+      "/admin/":
+        status: 200
+        form: true
+        body: |
+          <html><head><title>Welcome</title></head><body>It works!</body></html>
+          <div class="nav"><a href="/admin/">admin</a> <a href="/admin/login.php">admin/login.php</a> <a href="/login.php">login.php</a> <a href="/index.php">index.php</a> <a href="/api/v1/users">api/v1/users</a> <a href="/api/v1/config">api/v1/config</a> <a href="/config.php">config.php</a> <a href="/phpinfo.php">phpinfo.php</a> <a href="/upload/">upload</a> <a href="/download.php">download.php</a> <a href="/search.php">search.php</a> <a href="/about.php">about.php</a> </div>
+    fallback:
+      status: 404
+      body: |
+        <html><head><title>404 Not Found</title></head><body><h1>Not Found</h1></body></html>
+
+ports:
+  "19999":  { use: clone_demo }
+  "80":    { use: http_main }
+  "8080":  { use: http_main }
+  "8081":  { use: http_main }
+  "9200":  { use: http_main, server_header: "Apache/2.4.41 (Ubuntu)" }
+  "443":   { use: http_main, proto: tls-http, cert: "config/certs/server.pem", key: "config/certs/server.key" }
+  "8443":  { use: http_main, proto: tls-http, cert: "config/certs/server.pem", key: "config/certs/server.key" }
+
+  "22":    { proto: ssh, version: "SSH-2.0-OpenSSH_7.4", static_kexinit: true }
+  "8022":  { proto: ssh, version: "SSH-2.0-OpenSSH_7.4", static_kexinit: true }
+
+  "3306":  { use: mysql_80 }
+  "33061": { use: mysql_80 }
+
+  "6379":  { use: redis_5 }
+  "63791": { use: redis_5 }
+
+  "21":    { proto: ftp, banner: "220 (vsFTPd 2.3.4)\r\n", login_accept: false }
+  "8021":  { proto: ftp, banner: "220 (vsFTPd 3.0.3)\r\n", login_accept: false }
+
+  # ---- 1-1000 段服务伪装全谱（漏扫 1k 端口限制下最大化 POC 面）----
+  "23":    { use: telnet }
+  "2323":  { use: telnet }
+  "25":    { use: smtp }
+  "110":   { use: pop3 }
+  "143":   { use: imap }
+  "465":   { use: smtp }
+  "587":   { use: smtp }
+  "873":   { use: rsync }
+  "5900":  { use: vnc }
+  "2181":  { use: zookeeper }
+  "9418":  { use: git }
+  "11211": { use: memcached }
+  "1080":  { use: socks5 }
+  "512":   { use: rsh }
+  "513":   { use: rlogin }
+  "514":   { use: rsh }
+  "5060":  { use: sip }
+  "5432":  { proto: postgres }
+  "55432": { proto: postgres }
+  "27017": { proto: mongodb }
+  "27018": { proto: mongodb }
+  "2375":  { use: http_docker }
+  "3000":  { use: http_grafana }
+  "3128":  { use: http_squid }
+  "4848":  { use: http_glassfish }
+  "9191":  { use: http_prometheus }
+  "10250": { use: http_kubelet }
+  "8983":  { use: http_solr }
+  "9200":  { use: http_es }
+  "7001":  { use: http_weblogic7 }
+  "7002":  { use: http_weblogic7 }
+  "7003":  { use: http_weblogic7 }
+
+  # ---- Web 应用矩阵端口（8000-9000 段，web 应用 POC 不打端口号限制）----
+  "8090":  { use: web_wordpress }
+  "8091":  { use: web_drupal }
+  "8092":  { use: web_joomla }
+  "8093":  { use: web_shiro }
+  "8094":  { use: web_jenkins }
+  "8095":  { use: web_gitlab }
+  "8096":  { use: web_spring }
+  "8097":  { use: web_confluence }
+  "8098":  { use: web_jira }
+  "8099":  { use: web_sonarqube }
+  "8100":  { use: web_harbor }
+  "8101":  { use: web_nexus }
+
+  "445":   { proto: smb, negotiate_reply: "static" }
+  "8445":  { proto: smb, negotiate_reply: "static" }
+
+  "53":    { proto: dns, transport: udp, reply_mode: "static_a", answer_ip: "172.16.0.10" }
+  "8053":  { proto: dns, transport: udp, reply_mode: "static_a", answer_ip: "172.16.0.10" }
+
+  # ---- 多版本伪装矩阵（漏扫按版本打 CVE POC）----
+  "8082":  { use: http_nginx_old }
+  "8083":  { use: http_apache_old }
+  "8084":  { use: http_apache_new }
+  "8085":  { use: http_tomcat7 }
+  "8086":  { use: http_tomcat8 }
+  "8087":  { use: http_weblogic10 }
+  "8088":  { use: http_jboss5 }
+  "8089":  { use: http_iis8 }
+  "8023":  { use: ssh_openssh53 }
+  "8024":  { use: ssh_openssh66 }
+  "2222":  { use: ssh_openssh66 }
+  "33062": { use: mysql_55 }
+  "33063": { use: mysql_51 }
+  "63792": { use: redis_28 }
+  "8026":  { use: ftp_proftpd }
+  "7547":  { use: http_nginx_old }
+
+  # 兜底端口：回 HTTP 400——让对方认为该端口是 HTTP 服务，纳入服务识别与报告，
+  # 并触发其 HTTP 探测/POC（无响应的端口对方只 connect 不深测，报告里也看不见）
+  default: { proto: generic, banner: "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n" }

@@ -1,0 +1,58 @@
+# EatAll 宽端口模式（Windows 推荐）：覆盖扫描器常见目标端口空间
+#   - 1-1000（well-known）+ 7000-7100 + 8000-9000（web/服务高段）≈ 2100 个 TCP 端口
+#   - Windows 上 6.5 万端口会耗尽系统缓冲区（WinError 10055），该规模安全
+#   - 全端口模式（config.full.yaml 的 1-65535）仅建议 Linux 部署使用
+listen_ports:
+  - "1-1000"
+  - "7000-7100"
+  - "8000-9000"
+  - "1433"      # mssql
+  - "5432"      # postgres
+  - "55432"     # postgres 备用
+  - "3306"      # mysql 标准端口
+  - "6379"      # redis 标准端口（扫描器按端口号判断服务，标准端口才会深测）
+  - "9200"      # elasticsearch
+  - "11211"     # memcached
+  - "27017"     # mongodb
+  - "27018"     # mongodb 备用
+  - "33061"     # mysql 伪装（8.0.26）
+  - "33062"     # mysql 5.5.28（多版本矩阵）
+  - "33063"     # mysql 5.1.73（多版本矩阵）
+  - "63791"     # redis 伪装（5.0.14）
+  - "63792"     # redis 2.8.24（多版本矩阵）
+  - "8445"      # smb 伪装
+  - "8053/udp"  # dns 伪装
+  - "2222"      # 备用 ssh（漏扫端口清单）
+  - "7547"      # TR-069 管理端口（漏扫端口清单）
+  - "49152"     # Windows RPC 段（漏扫端口清单）
+  - "19999"     # 克隆目标（demo）
+  - "1080"      # socks5 伪装
+  - "2181"      # zookeeper 伪装
+  - "5060"      # sip 伪装
+  - "2323"      # telnet 备用
+  - "2375"      # docker 伪装
+  - "3000"      # grafana 伪装
+  - "3128"      # squid 伪装
+  - "4848"      # glassfish 伪装
+  - "5900"      # vnc 伪装
+  - "9191"      # prometheus 伪装（9090 被 dashboard 占用）
+  - "9418"      # git 伪装
+  - "10250"     # kubelet 伪装
+  - "53/udp"
+  - "161/udp"
+  - "500/udp"
+  - "1900/udp"
+  - "5353/udp"
+
+sessions_dir: "data/sessions"
+log_file: "data/logs/proxy.log"
+
+limits:
+  max_conns_per_ip: 200
+  max_session_bytes: 1048576
+  idle_timeout_sec: 15
+  max_session_sec: 60
+  max_http_reqs_per_conn: 10
+  max_line_bytes: 65536
+  max_body_bytes: 65536
+  max_global_conns: 4096

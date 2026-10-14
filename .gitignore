@@ -1,0 +1,14 @@
+﻿# build output
+/bin/
+# runtime data
+/data/
+# generated nuclei templates
+/out/
+# tool caches
+/.playwright-mcp/
+/.pytest_tmp/
+__pycache__/
+*.pyc
+*.pyo
+*.log
+.env

@@ -1,0 +1,19 @@
+# E2E 演示用：模拟"扫描器升级后新增的探测"——第二轮扫描使用该模板，
+# 命中蜜罐后应作为"新增 POC"出现在版本对比中
+id: demo-upgrade-probe
+info:
+  name: Demo Upgrade Probe
+  author: demo
+  severity: low
+  tags: demo,upgrade
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/demo-upgrade-{{randstr}}.php?mode={{randstr}}"
+    matchers:
+      - type: status
+        status:
+          - 200
+          - 301
+          - 302
+          - 404

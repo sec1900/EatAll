@@ -1,0 +1,28 @@
+# EatAll 捕获代理主配置（生产端口表，Linux VPS 部署用）
+# Windows 开发请用 config/config.dev.yaml（1024 以下端口需管理员权限）
+listen_ports:
+  - "22"
+  - "53/udp"
+  - "80"
+  - "443"
+  - "21"
+  - "445"
+  - "3306"
+  - "6379"
+  - "8080"
+  - "8443"
+  - "9200"
+  - "7000-7100"
+
+sessions_dir: "data/sessions"
+log_file: "data/logs/proxy.log"
+
+limits:
+  max_conns_per_ip: 50
+  max_session_bytes: 1048576      # 单方向字节上限 1MB
+  idle_timeout_sec: 15
+  max_session_sec: 60
+  max_http_reqs_per_conn: 10
+  max_line_bytes: 65536
+  max_body_bytes: 65536
+  max_global_conns: 1024

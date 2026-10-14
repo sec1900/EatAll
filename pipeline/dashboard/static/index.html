@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>EatAll — POC 吸收系统</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">🍽️ EatAll <span class="sub">POC 吸收系统</span></div>
+  <nav id="tabs">
+    <button data-tab="overview" class="active">总览</button>
+    <button data-tab="sessions">会话</button>
+    <button data-tab="flows">扫描器</button>
+    <button data-tab="ports">端口</button>
+    <button data-tab="pocs">POC 库</button>
+    <button data-tab="scans">版本</button>
+    <button data-tab="console">控制台</button>
+  </nav>
+  <div id="clock"></div>
+</header>
+
+<main id="view"></main>
+
+<!-- 遮罩（点击关闭弹层） -->
+<div id="overlay" class="overlay hidden"></div>
+
+<!-- 会话详情抽屉 -->
+<div id="drawer" class="drawer hidden">
+  <div class="drawer-head"><span id="drawer-title"></span><button id="drawer-close">✕</button></div>
+  <div id="drawer-body"></div>
+</div>
+
+<!-- POC YAML 弹窗 -->
+<div id="modal" class="modal hidden">
+  <div class="modal-head"><span id="modal-title"></span><button id="modal-close">✕</button></div>
+  <pre id="modal-body"></pre>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
